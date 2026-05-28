@@ -16,8 +16,11 @@ services:
 
   redis:
     image: redis:7-alpine
+    command: redis-server --appendonly yes --appendfsync always      --maxmemory 1gb --maxmemory-policy noeviction
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data                                             -- Added persistence volume
     restart: unless-stopped
 
   backend:
@@ -65,4 +68,5 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:                                                        -- Added redis_data register
   assets_data:

@@ -7,6 +7,7 @@ CREATE TABLE content_items (
     scheduled_at TIMESTAMPTZ,
     caption TEXT,
     revision_count INTEGER NOT NULL DEFAULT 0,
+    version INTEGER NOT NULL DEFAULT 1,                             -- Concurrency Guard
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

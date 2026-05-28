@@ -10,6 +10,7 @@ CREATE TABLE approval_requests (
     client_decision VARCHAR(20) CHECK (client_decision IN ('approved', 'rejected')),
     client_decided_at TIMESTAMPTZ,
     timeout_at TIMESTAMPTZ NOT NULL,
+    timeout_notified_at TIMESTAMPTZ,                                -- New: Prevent re-firing torrents
     state VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     feedback TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
