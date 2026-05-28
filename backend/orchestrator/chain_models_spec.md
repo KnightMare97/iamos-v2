@@ -58,3 +58,18 @@
 - **Prompt Parameter Specification:**
   - The clean dictionary array result must be formatted into a structural text block and injected directly via the `{shared_calendar_events}` variable into the Tier 3 Strategy template.
   - **Prompt Instruction Constraint:** The LLM must be explicitly directed: *"When generating time-slots and content concepts for dates listed under Shared Calendar Events, you must adapt the story arc, visual direction, and engagement objective to natively align with the provided content_guidance specifications."*
+
+## Out-of-Band Operator Notes Integration (Strategy Guard)
+- **Context Extraction Vector:**
+  - When compiling the blueprint contextual layer for a new Strategy cycle, the worker MUST extract the 5 most recent scratchpad records:
+    ```sql
+    SELECT cn.note_text, cn.channel, cn.created_at, o.name as operator_name 
+    FROM client_notes cn
+    JOIN operators o ON cn.operator_id = o.id
+    WHERE cn.client_id = :client_id
+    ORDER BY cn.created_at DESC
+    LIMIT 5;
+    ```
+- **Prompt Parameter Specification:**
+  - Formatted into a clean Markdown block, these records must populate the `{operator_notes}` prompt variable.
+  - **Context Hierarchy Override Invariant:** The system prompt must instruct the Tier 3 Strategy Agent: *"The context supplied under `{operator_notes}` represents direct, out-of-band human updates from the client. These instructions hold strict precedence and MUST override any historical patterns or conclusions derived from the vector memory database."*
