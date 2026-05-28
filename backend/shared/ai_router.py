@@ -23,7 +23,8 @@ TASK_TIER_MAP: Dict[str, int] = {
     "approval_summarization": 2,
     "moderation_rules": 1,
     "moderation_ambiguous": 2,
-    "observability_digest": 2
+    "observability_digest": 2,
+    "reporting_narrative": 2                                         -- New: Weekly Report Generation Task
 }
 
 PROVIDER_MODELS: Dict[str, Dict[str, str]] = {
@@ -84,7 +85,6 @@ class AIRouter:
 
         # 2. Check Budget Throttling for Tier 2 Tasks
         if tier == 2 and self.monthly_budget_exhausted(client_id):
-            # Downgrade or optimize model choice under tight budget constraints
             return ModelConfig(mode="throttled", provider="google", model=PROVIDER_MODELS["google"]["tier2"], note="budget_throttled_to_flash")
 
         # 3. Multi-Provider Cascade Chain (Chain of Responsibility)
@@ -93,15 +93,11 @@ class AIRouter:
         for provider in provider_order:
             if provider not in PROVIDER_MODELS:
                 continue
-            
-            # Check if this specific provider's circuit breaker is open (tripped)
             if self.circuit_breaker.is_open(provider):
                 continue
-                
-            # If healthy, route to the requested tier model
             return ModelConfig(mode="standard", provider=provider, model=PROVIDER_MODELS[provider][tier_key])
 
-        # 4. Graceful Degradation: If all providers for Tier 3 fail, drop down to best available Tier 2
+        # 4. Graceful Degradation: Drop down to Tier 2 if all Tier 3 are dead
         for provider in provider_order:
             if provider not in PROVIDER_MODELS or self.circuit_breaker.is_open(provider):
                 continue
