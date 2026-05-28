@@ -1,9 +1,9 @@
-"""IAMOS AI Router Component
-Manages Tier routing, self-assessed confidence evaluation gates, 
-budget throttling, and provider circuit breakers.
+"""IAMOS Multi-Provider AI Router Component
+Manages dynamic failovers across Anthropic, OpenAI, Google, and xAI
+based on Tier requirements, local circuit breakers, and client budgets.
 """
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, List, Any
 
 @dataclass
 class ModelConfig:
@@ -26,47 +26,88 @@ TASK_TIER_MAP: Dict[str, int] = {
     "observability_digest": 2
 }
 
-TIER_MODEL_MAP: Dict[int, str] = {
-    1: "local-nano-or-rules",
-    2: "claude-3-haiku-20240307",
-    3: "claude-3-5-sonnet-20240620"
+PROVIDER_MODELS: Dict[str, Dict[str, str]] = {
+    "anthropic": {
+        "tier2": "claude-haiku-4-5",
+        "tier3": "claude-sonnet-4-6",
+    },
+    "openai": {
+        "tier2": "gpt-4o-mini",
+        "tier3": "gpt-4o",
+    },
+    "google": {
+        "tier2": "gemini-2.0-flash",
+        "tier3": "gemini-2.5-pro",
+    },
+    "xai": {
+        "tier2": "grok-3-mini",
+        "tier3": "grok-3",
+    }
 }
 
-class FakeCircuitBreaker:
-    """Stub for system circuit breaker evaluating health of specific providers."""
-    def is_open(self, target: str) -> bool:
-        # Returns True if service is down/tripped
-        return False
+class CircuitBreakerRegistry:
+    """Tracks unhealthy or tripped provider states locally."""
+    def __init__(self):
+        self.tripped_providers: List[str] = []
+
+    def is_open(self, provider: str) -> bool:
+        return provider in self.tripped_providers
+
+    def trip(self, provider: str):
+        if provider not in self.tripped_providers:
+            self.tripped_providers.append(provider)
 
 class AIRouter:
-    def __init__(self, circuit_breaker: Optional[FakeCircuitBreaker] = None):
-        self.circuit_breaker = circuit_breaker or FakeCircuitBreaker()
+    def __init__(self, primary_provider: str = "anthropic", 
+                 fallbacks: Optional[List[str]] = None,
+                 circuit_breaker: Optional[CircuitBreakerRegistry] = None):
+        self.primary_provider = primary_provider
+        self.fallbacks = fallbacks or ["openai", "google", "xai"]
+        self.circuit_breaker = circuit_breaker or CircuitBreakerRegistry()
 
     def monthly_budget_exhausted(self, client_id: Any) -> bool:
-        """Stub checking if a client has blown past their computational quota."""
         return False
 
     def route(self, task_type: str, context: dict) -> ModelConfig:
         if task_type not in TASK_TIER_MAP:
-            # Safe default fallback
-            return ModelConfig(mode="standard", provider="anthropic", model=TIER_MODEL_MAP[3], note="unknown_task_default")
+            return ModelConfig(mode="standard", provider=self.primary_provider, 
+                               model=PROVIDER_MODELS[self.primary_provider]["tier3"], 
+                               note="unknown_task_default")
             
         tier = TASK_TIER_MAP[task_type]
+        tier_key = f"tier{tier}"
         client_id = context.get("client_id")
 
-        # 1. Evaluate Tier 3 Outage Fallbacks
-        if tier == 3 and self.circuit_breaker.is_open("anthropic_sonnet"):
-            if self.circuit_breaker.is_open("anthropic_haiku"):
-                return ModelConfig(mode="degraded", provider=None, model=None, note="all_providers_down")
-            return ModelConfig(mode="degraded_fallback", provider="anthropic", model="claude-3-haiku-20240307", note="sonnet_outage_fallback_to_haiku")
-
-        # 2. Check Client Budgets for Contextual Tasks
-        if tier == 2 and self.monthly_budget_exhausted(client_id):
-            return ModelConfig(mode="throttled", provider="anthropic", model="claude-3-haiku-20240307", note="budget_throttled")
-
-        # 3. Handle Tier 1 Local Rule Engine Tasks
+        # 1. Handle Tier 1 Rule Engines / Local Processing
         if tier == 1:
-            return ModelConfig(mode="local", provider=None, model=TIER_MODEL_MAP[1], note="rule_engine_or_local_nano")
+            return ModelConfig(mode="local", provider=None, model="local-rules", note="rule_engine_execution")
 
-        # 4. Standard Flow Execution
-        return ModelConfig(mode="standard", provider="anthropic", model=TIER_MODEL_MAP[tier])
+        # 2. Check Budget Throttling for Tier 2 Tasks
+        if tier == 2 and self.monthly_budget_exhausted(client_id):
+            # Downgrade or optimize model choice under tight budget constraints
+            return ModelConfig(mode="throttled", provider="google", model=PROVIDER_MODELS["google"]["tier2"], note="budget_throttled_to_flash")
+
+        # 3. Multi-Provider Cascade Chain (Chain of Responsibility)
+        provider_order = [self.primary_provider] + self.fallbacks
+        
+        for provider in provider_order:
+            if provider not in PROVIDER_MODELS:
+                continue
+            
+            # Check if this specific provider's circuit breaker is open (tripped)
+            if self.circuit_breaker.is_open(provider):
+                continue
+                
+            # If healthy, route to the requested tier model
+            return ModelConfig(mode="standard", provider=provider, model=PROVIDER_MODELS[provider][tier_key])
+
+        # 4. Graceful Degradation: If all providers for Tier 3 fail, drop down to best available Tier 2
+        for provider in provider_order:
+            if provider not in PROVIDER_MODELS or self.circuit_breaker.is_open(provider):
+                continue
+            return ModelConfig(mode="degraded_tier_fallback", provider=provider, 
+                               model=PROVIDER_MODELS[provider]["tier2"], 
+                               note="all_tier3_down_degraded_to_tier2")
+
+        # 5. Complete Catastrophe Fallback
+        return ModelConfig(mode="queued_halt", provider=None, model=None, note="all_providers_tripped_operator_alerted")

@@ -30,3 +30,13 @@
 ### 5. Moderation & Observability
 - **Moderation:** Rule-engine handles constraints. Tier 2 Haiku triggers only on ambiguous border flags.
 - **Observability:** Nightly Tier 2 Agent digest analyzing the last 50 logging events for structural trends.
+
+## Multi-Provider AI Failover Specification
+- **Interface Driven:** The execution workers must utilize a `ModelProvider` abstract base interface. Real-world client managers for Anthropic, OpenAI, Google, and xAI must implement this interface natively.
+- **Circuit Breaker Policy:** If a network timeout, 5xx API boundary state, or rate limit threshold triggers a block on the active provider, the `AIRouter` immediately trips that provider's circuit and falls back to the next healthy provider in sequence.
+- **Failover Order:** Primary (`AI_PRIMARY_PROVIDER`) -> Fallback 1 -> Fallback 2 -> Fallback 3.
+
+## Daily Story Counter Override Logic
+- **Precedence Rules:** Content generation engines evaluating اسلات‌های زمانی calendar items MUST read `daily_story_overrides` first. If a match is absent, fall back to `clients.stories_per_day`.
+- **Zero-Slot Exclusions:** A `stories_count = 0` override explicitly marks that date as a freeze/skip window. No story items will be appended to the pipeline for processing.
+- **Strategy Injection:** The dynamic prompt generation worker for Strategy execution must fetch the full month mapping of overrides and pass it as a contextual variables map `{daily_overrides}` directly to the LLM context.

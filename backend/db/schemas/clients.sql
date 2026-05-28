@@ -24,11 +24,21 @@ CREATE TABLE instagram_sessions (
     encrypted_password TEXT NOT NULL,
     session_file TEXT,
     proxy_url TEXT,                                                  -- Primary Proxy
-    proxy_url_backup TEXT,                                           -- New: Iran Connectivity Guard
+    proxy_url_backup TEXT,                                           -- Iran Connectivity Guard
     last_login_at TIMESTAMPTZ,
     session_valid BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE daily_story_overrides (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    client_id UUID NOT NULL REFERENCES clients(id),
+    date DATE NOT NULL,
+    stories_count INTEGER NOT NULL CHECK (stories_count >= 0),
+    created_by VARCHAR(255) NOT NULL,                                -- Operator ID or System
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(client_id, date)
 );
 
 CREATE TABLE shooting_requests (
@@ -42,3 +52,4 @@ CREATE TABLE shooting_requests (
 );
 
 CREATE INDEX idx_shooting_requests_client_id ON shooting_requests(client_id);
+CREATE INDEX idx_daily_story_overrides_client_date ON daily_story_overrides(client_id, date);

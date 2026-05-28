@@ -16,11 +16,11 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: redis-server --appendonly yes --appendfsync always      --maxmemory 1gb --maxmemory-policy noeviction
+    command: redis-server --appendonly yes --appendfsync always --maxmemory 1gb --maxmemory-policy noeviction
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data                                             -- Added persistence volume
+      - redis_data:/data
     restart: unless-stopped
 
   backend:
@@ -28,7 +28,14 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
+      AI_PRIMARY_PROVIDER: ${AI_PRIMARY_PROVIDER}
+      AI_FALLBACK_PROVIDER: ${AI_FALLBACK_PROVIDER}
+      AI_FALLBACK_PROVIDER_2: ${AI_FALLBACK_PROVIDER_2}
+      AI_FALLBACK_PROVIDER_3: ${AI_FALLBACK_PROVIDER_3}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY}
+      XAI_API_KEY: ${XAI_API_KEY}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       INSTAGRAM_PROXY_URL: ${INSTAGRAM_PROXY_URL}
     ports:
@@ -47,7 +54,14 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
+      AI_PRIMARY_PROVIDER: ${AI_PRIMARY_PROVIDER}
+      AI_FALLBACK_PROVIDER: ${AI_FALLBACK_PROVIDER}
+      AI_FALLBACK_PROVIDER_2: ${AI_FALLBACK_PROVIDER_2}
+      AI_FALLBACK_PROVIDER_3: ${AI_FALLBACK_PROVIDER_3}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY}
+      XAI_API_KEY: ${XAI_API_KEY}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
     depends_on:
       - db
@@ -68,5 +82,5 @@ services:
 
 volumes:
   postgres_data:
-  redis_data:                                                        -- Added redis_data register
+  redis_data:
   assets_data:
