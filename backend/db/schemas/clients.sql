@@ -6,6 +6,7 @@ CREATE TABLE clients (
     name VARCHAR(255) NOT NULL,
     brand_voice TEXT,
     approval_mode INTEGER NOT NULL DEFAULT 1 CHECK (approval_mode IN (1, 2, 3)),
+    publish_mode INTEGER NOT NULL DEFAULT 1 CHECK (publish_mode IN (1, 2, 3)),
     client_calendar_approval BOOLEAN NOT NULL DEFAULT FALSE,
     stories_per_day INTEGER NOT NULL DEFAULT 5,
     active_days INTEGER[] NOT NULL DEFAULT '{0,1,2,3,4,5}'::INTEGER[],

@@ -54,3 +54,6 @@ POST   /publish-jobs/{id}/retry       — manual retry trigger
 - scheduled_at comes from ContentItem.scheduled_at
 - Publishing never modifies ContentItem state directly — emits events which orchestrator acts on
 - Dead jobs require manual operator intervention to retry
+
+## Publish Modes
+- **Mode 1 (manual):** The system prepares the content package and sends it to the operator via Telegram with all associated assets and captions. The operator handles publishing manually on the app and confirms execution via Telegram. The system then transitions the job state to `DONE`. No Instagram proxy credentials or active sessions are required for this profile mode.
