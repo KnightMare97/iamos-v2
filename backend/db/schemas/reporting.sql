@@ -9,6 +9,7 @@ CREATE TABLE weekly_reports (
     stories_scheduled INTEGER NOT NULL DEFAULT 0,
     stories_published INTEGER NOT NULL DEFAULT 0,
     stories_failed INTEGER NOT NULL DEFAULT 0,
+    stories_missed INTEGER NOT NULL DEFAULT 0,                       -- New: Tracked via publish.missed
     stories_revised INTEGER NOT NULL DEFAULT 0,
     avg_approval_hours FLOAT,
     ai_cost_usd FLOAT NOT NULL DEFAULT 0.0,
@@ -16,9 +17,9 @@ CREATE TABLE weekly_reports (
     tier3_calls INTEGER NOT NULL DEFAULT 0,
     
     -- Derived Signals (The Smart Metrics)
-    revision_rate_trend_percentage FLOAT,                            -- e.g., -14.5% means fewer revisions than last week
-    operator_workload_score VARCHAR(20),                             -- 'optimal', 'overloaded', 'underutilized'
-    tier3_escalation_rate FLOAT,                                     -- Prompt quality indicator (tier3_calls / total_calls)
+    revision_rate_trend_percentage FLOAT,
+    operator_workload_score VARCHAR(20),
+    tier3_escalation_rate FLOAT,
     
     -- Phase 2+ Metrics (Nullable until Instagram Graph API Connection)
     avg_views FLOAT,

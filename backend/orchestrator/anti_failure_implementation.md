@@ -36,3 +36,26 @@
     `SELECT status FROM clients WHERE id = :client_id;`
   - If a client holds a status of `'offboarded'`, the orchestrator must instantly halt processing, emit an observability log under event type `system.stale_event`, and securely discard the message payload.
 - **Paused Mode Handling:** If a client holds a status of `'paused'`, the scheduling loops within the strategy and content domains must hold and suspend automatic asset dispatching without executing a destructive wipe of pending queues.
+
+## 7. Missed Publish Detection & Operator Override Interventions
+- **Scheduled Detector Job (Every 30 Minutes):**
+  - The `missed_publish_detector` worker must run an explicit boundary query to capture lost or stuck scheduling records:
+    ```sql
+    SELECT pj.* FROM publish_jobs pj
+    JOIN clients c ON pj.client_id = c.id
+    WHERE pj.state = 'SCHEDULED'
+      AND pj.scheduled_at < NOW() - INTERVAL '2 hours'
+      AND pj.missed_alert_sent = FALSE
+      AND c.status = 'active';
+    ```
+  - For each returned row, the worker must execute in an atomic isolation:
+    1. Emit the `publish.missed` event payload containing the target `job_id` and metadata.
+    2. Dispatch an urgent Telegram Alert payload to the operator channel with the contextual Job ID.
+    3. Update `missed_alert_sent = TRUE` to lock the notification loop.
+
+- **Orchestration State Rules (State Invariance):**
+  - Arrival of a `publish.missed` event MUST NOT mutate the `state` of the `publish_jobs` table. The job remains strictly in `SCHEDULED` status to maintain historical tracking and block ghost re-fires.
+  
+- **Operator Manual Resolutions:**
+  - `POST /publish-jobs/{id}/confirm-manual`: Atomically transitions the target job state from `SCHEDULED` to `DONE` with an optimistic lock guard (`version = version + 1`), confirming the operator resolved the slot physically on Instagram.
+  - `POST /publish-jobs/{id}/cancel`: Atomically forces the job state directly to the terminal `CANCELLED` status, safely liquidating the missed slot from the active pipeline.

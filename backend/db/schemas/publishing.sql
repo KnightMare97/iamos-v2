@@ -9,10 +9,12 @@ CREATE TABLE publish_jobs (
     last_attempt_at TIMESTAMPTZ,
     error_message TEXT,
     state VARCHAR(50) NOT NULL DEFAULT 'QUEUED'
-        CHECK (state IN ('QUEUED', 'ATTEMPTING', 'DONE', 'FAILED', 'DEAD', 'CANCELLED')), -- Updated Terminal State
+        CHECK (state IN ('QUEUED', 'ATTEMPTING', 'DONE', 'FAILED', 'DEAD', 'CANCELLED')),
+    missed_alert_sent BOOLEAN NOT NULL DEFAULT FALSE,                -- New: Torrent Notification Shield
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_publish_jobs_client_id ON publish_jobs(client_id);
 CREATE INDEX idx_publish_jobs_state_scheduled ON publish_jobs(state, scheduled_at);
+CREATE INDEX idx_publish_jobs_missed_detector ON publish_jobs(state, scheduled_at, missed_alert_sent);
