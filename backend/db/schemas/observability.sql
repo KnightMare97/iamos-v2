@@ -11,7 +11,6 @@ CREATE TABLE events (
     triggered_by VARCHAR(255) NOT NULL
 );
 
--- append-only: no updates, no deletes ever
 CREATE INDEX idx_events_client_id ON events(client_id);
 CREATE INDEX idx_events_aggregate_id ON events(aggregate_id);
 CREATE INDEX idx_events_event_type ON events(event_type);
@@ -24,6 +23,10 @@ CREATE TABLE agent_calls (
     agent_type VARCHAR(50) NOT NULL,
     prompt_version VARCHAR(20),
     model VARCHAR(100) NOT NULL,
+    tier INTEGER CHECK (tier IN (1, 2, 3)),                -- New: Tier classification
+    confidence_score FLOAT,                               -- New: Self-assessed score
+    escalation_reason TEXT,                               -- New: Why it upgraded to Tier 3
+    provider VARCHAR(50) DEFAULT 'anthropic',             -- New: Provider tracking
     input_tokens INTEGER NOT NULL DEFAULT 0,
     output_tokens INTEGER NOT NULL DEFAULT 0,
     cost_usd FLOAT NOT NULL DEFAULT 0.0,
@@ -35,3 +38,4 @@ CREATE TABLE agent_calls (
 CREATE INDEX idx_agent_calls_client_id ON agent_calls(client_id);
 CREATE INDEX idx_agent_calls_agent_type ON agent_calls(agent_type);
 CREATE INDEX idx_agent_calls_created_at ON agent_calls(created_at);
+CREATE INDEX idx_agent_calls_tier ON agent_calls(tier);
