@@ -9,7 +9,7 @@ CREATE TABLE weekly_reports (
     stories_scheduled INTEGER NOT NULL DEFAULT 0,
     stories_published INTEGER NOT NULL DEFAULT 0,
     stories_failed INTEGER NOT NULL DEFAULT 0,
-    stories_missed INTEGER NOT NULL DEFAULT 0,                       -- New: Tracked via publish.missed
+    stories_missed INTEGER NOT NULL DEFAULT 0,
     stories_revised INTEGER NOT NULL DEFAULT 0,
     avg_approval_hours FLOAT,
     ai_cost_usd FLOAT NOT NULL DEFAULT 0.0,
@@ -20,6 +20,9 @@ CREATE TABLE weekly_reports (
     revision_rate_trend_percentage FLOAT,
     operator_workload_score VARCHAR(20),
     tier3_escalation_rate FLOAT,
+    
+    -- Prompt Optimization Layer
+    prompt_improvement_suggestions JSONB DEFAULT '[]'::JSONB,        -- New: Array of {theme, suggested_change, confidence}
     
     -- Phase 2+ Metrics (Nullable until Instagram Graph API Connection)
     avg_views FLOAT,

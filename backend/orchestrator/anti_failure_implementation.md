@@ -90,3 +90,49 @@
       🎨 **Visual Direction:** {visual_direction}
       ```
   - **Phase 2 (Future Enhancement):** - The approval workflow worker will trigger an automated headless render of the `/preview` URL, capture the layout buffer as a PNG image, and issue a `sendPhoto` call alongside the interactive approval inline buttons to the operator.
+
+## 10. Prompt Optimization Feedback Loop & Theme Analysis
+- **Automatic Logging Invariant:**
+  - Every interception of an `approval.rejected` event that holds non-empty human operator text feedback MUST generate a record into `rejection_patterns` with the active `week_start` timestamp date.
+
+- **Weekly Analysis Cron (Monday Morning Core Pipeline):**
+  - Alongside report processing, the `prompt_review_analyzer` triggers a grouped aggregation scanning for raw items:
+    ```sql
+    SELECT feedback_text, id FROM rejection_patterns
+    WHERE client_id = :client_id
+      AND week_start = :last_week_date
+      AND agent_type = 'content';
+    ```
+  - **The Signal Threshold Rule:** The worker must evaluate the result array length. If `len(patterns) < 3`, abort processing for that specific client to prevent hallucinating themes out of shallow/random noise data.
+  - **LLM Structured Contract:** If the threshold matches, call Tier 2 (Haiku) with `task_type="prompt_review_analyzer"`. The model prompt requires a strict JSON Schema return constraint:
+    ```json
+    { "theme": "string", "suggested_change": "string", "confidence": 0.85 }
+    ```
+  - **Operator Notification & Escalation Bounds:** If `confidence > 0.7` and `theme` is non-null:
+    1. Update all targeted `rejection_patterns` for that batch setting `flagged_for_review = TRUE`.
+    2. Append the formatted object directly into the target `weekly_reports.prompt_improvement_suggestions` block.
+    3. Issue a specialized warning summary line into the weekly Operator Telegram dispatch channel.
+  - **Safety System Boundary (Anti-AutoMutation):** The architecture prohibits the platform from updating code prompt files automatically. All suggestions function as advisory pointers requiring operator review via the admin panel endpoints.
+
+## 10. Prompt Optimization Feedback Loop & Theme Analysis
+- **Automatic Logging Invariant:**
+  - Every interception of an `approval.rejected` event that holds non-empty human operator text feedback MUST generate a record into `rejection_patterns` with the active `week_start` timestamp date.
+
+- **Weekly Analysis Cron (Monday Morning Core Pipeline):**
+  - Alongside report processing, the `prompt_review_analyzer` triggers a grouped aggregation scanning for raw items:
+    ```sql
+    SELECT feedback_text, id FROM rejection_patterns
+    WHERE client_id = :client_id
+      AND week_start = :last_week_date
+      AND agent_type = 'content';
+    ```
+  - **The Signal Threshold Rule:** The worker must evaluate the result array length. If `len(patterns) < 3`, abort processing for that specific client to prevent hallucinating themes out of shallow/random noise data.
+  - **LLM Structured Contract:** If the threshold matches, call Tier 2 (Haiku) with `task_type="prompt_review_analyzer"`. The model prompt requires a strict JSON Schema return constraint:
+    ```json
+    { "theme": "string", "suggested_change": "string", "confidence": 0.85 }
+    ```
+  - **Operator Notification & Escalation Bounds:** If `confidence > 0.7` and `theme` is non-null:
+    1. Update all targeted `rejection_patterns` for that batch setting `flagged_for_review = TRUE`.
+    2. Append the formatted object directly into the target `weekly_reports.prompt_improvement_suggestions` block.
+    3. Issue a specialized warning summary line into the weekly Operator Telegram dispatch channel.
+  - **Safety System Boundary (Anti-AutoMutation):** The architecture prohibits the platform from updating code prompt files automatically. All suggestions function as advisory pointers requiring operator review via the admin panel endpoints.

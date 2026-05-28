@@ -24,7 +24,8 @@ TASK_TIER_MAP: Dict[str, int] = {
     "moderation_rules": 1,
     "moderation_ambiguous": 2,
     "observability_digest": 2,
-    "reporting_narrative": 2                                         -- New: Weekly Report Generation Task
+    "reporting_narrative": 2,
+    "prompt_review_analyzer": 2                                      -- New: Prompt Optimization Theme Analysis Task
 }
 
 PROVIDER_MODELS: Dict[str, Dict[str, str]] = {
@@ -47,7 +48,6 @@ PROVIDER_MODELS: Dict[str, Dict[str, str]] = {
 }
 
 class CircuitBreakerRegistry:
-    """Tracks unhealthy or tripped provider states locally."""
     def __init__(self):
         self.tripped_providers: List[str] = []
 
@@ -79,15 +79,12 @@ class AIRouter:
         tier_key = f"tier{tier}"
         client_id = context.get("client_id")
 
-        # 1. Handle Tier 1 Rule Engines / Local Processing
         if tier == 1:
             return ModelConfig(mode="local", provider=None, model="local-rules", note="rule_engine_execution")
 
-        # 2. Check Budget Throttling for Tier 2 Tasks
         if tier == 2 and self.monthly_budget_exhausted(client_id):
             return ModelConfig(mode="throttled", provider="google", model=PROVIDER_MODELS["google"]["tier2"], note="budget_throttled_to_flash")
 
-        # 3. Multi-Provider Cascade Chain (Chain of Responsibility)
         provider_order = [self.primary_provider] + self.fallbacks
         
         for provider in provider_order:
@@ -97,7 +94,6 @@ class AIRouter:
                 continue
             return ModelConfig(mode="standard", provider=provider, model=PROVIDER_MODELS[provider][tier_key])
 
-        # 4. Graceful Degradation: Drop down to Tier 2 if all Tier 3 are dead
         for provider in provider_order:
             if provider not in PROVIDER_MODELS or self.circuit_breaker.is_open(provider):
                 continue
@@ -105,5 +101,4 @@ class AIRouter:
                                model=PROVIDER_MODELS[provider]["tier2"], 
                                note="all_tier3_down_degraded_to_tier2")
 
-        # 5. Complete Catastrophe Fallback
         return ModelConfig(mode="queued_halt", provider=None, model=None, note="all_providers_tripped_operator_alerted")
