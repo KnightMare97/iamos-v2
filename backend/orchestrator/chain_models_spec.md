@@ -40,3 +40,21 @@
 - **Precedence Rules:** Content generation engines evaluating اسلات‌های زمانی calendar items MUST read `daily_story_overrides` first. If a match is absent, fall back to `clients.stories_per_day`.
 - **Zero-Slot Exclusions:** A `stories_count = 0` override explicitly marks that date as a freeze/skip window. No story items will be appended to the pipeline for processing.
 - **Strategy Injection:** The dynamic prompt generation worker for Strategy execution must fetch the full month mapping of overrides and pass it as a contextual variables map `{daily_overrides}` directly to the LLM context.
+
+## Shared Agency Calendar Core Integration
+- **Context Generation Extraction Rule:**
+  - When the Strategy worker initiates a monthly calendar build for a client, it MUST run an isolated union-exclusion scan over the target date range `[campaign_start, campaign_end]`:
+    ```sql
+    SELECT title, event_type, content_guidance 
+    FROM agency_calendar_events ace
+    WHERE ace.event_date BETWEEN :start_date AND :end_date
+      AND ace.region = :client_region
+      AND (ace.applies_to_all = TRUE)
+      AND ace.id NOT IN (
+          SELECT event_id FROM client_calendar_exclusions 
+          WHERE client_id = :client_id
+      );
+    ```
+- **Prompt Parameter Specification:**
+  - The clean dictionary array result must be formatted into a structural text block and injected directly via the `{shared_calendar_events}` variable into the Tier 3 Strategy template.
+  - **Prompt Instruction Constraint:** The LLM must be explicitly directed: *"When generating time-slots and content concepts for dates listed under Shared Calendar Events, you must adapt the story arc, visual direction, and engagement objective to natively align with the provided content_guidance specifications."*

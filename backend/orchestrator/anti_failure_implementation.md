@@ -136,3 +136,11 @@
     2. Append the formatted object directly into the target `weekly_reports.prompt_improvement_suggestions` block.
     3. Issue a specialized warning summary line into the weekly Operator Telegram dispatch channel.
   - **Safety System Boundary (Anti-AutoMutation):** The architecture prohibits the platform from updating code prompt files automatically. All suggestions function as advisory pointers requiring operator review via the admin panel endpoints.
+
+## 11. Agency Shared Calendar Gateways & Exclusion Constraints
+- **Endpoint Contracts:**
+  - `GET /agency-calendar`: Fetches a global time-sorted view of upcoming system-wide holidays and campaigns.
+  - `POST /agency-calendar`: Creates an agency-wide event. Requires explicit structural validations on `event_type` and `region`.
+  - `POST /clients/{id}/calendar-exclusions/{event_id}`: Inserts a unique row into `client_calendar_exclusions` to block the selected event context from mutating the target client's future strategy generations.
+  - `DELETE /clients/{id}/calendar-exclusions/{event_id}`: Drops the exclusion link, re-enabling cultural context inclusion for subsequent cron cycles.
+- **Race Condition Guard:** State mutations on calendar exclusions during an active strategy run (`state = 'GENERATING'`) must be blocked at the HTTP gateway layer to prevent corrupted prompt interpolation states.
