@@ -25,10 +25,10 @@ TASK_TIER_MAP: Dict[str, int] = {
     "moderation_ambiguous": 2,
     "observability_digest": 2,
     "reporting_narrative": 2,
-    "prompt_review_analyzer": 2,
-    "campaign_asset_vision": 2,
-    "image_prompt_generation": 3,                                    -- New: Tier 3 Prompt Expansion Strategy (Sonnet)
-    "image_qa_vision": 2                                             -- New: Tier 2 Multi-Factor Vision QA (Haiku/Mini)
+    "prompt_review_analyzer": 2,    # Tier 2 Prompt Optimization Theme Analysis Task
+    "campaign_asset_vision": 2,     # Vision Description for Ingested Campaign Assets
+    "image_prompt_generation": 3,   # Tier 3 Prompt Expansion Strategy (Sonnet)
+    "image_qa_vision": 2            # Tier 2 Multi-Factor Vision QA (Haiku/Mini)
 }
 
 PROVIDER_MODELS: Dict[str, Dict[str, str]] = {
