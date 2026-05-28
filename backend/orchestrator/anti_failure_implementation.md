@@ -144,3 +144,14 @@
   - `POST /clients/{id}/calendar-exclusions/{event_id}`: Inserts a unique row into `client_calendar_exclusions` to block the selected event context from mutating the target client's future strategy generations.
   - `DELETE /clients/{id}/calendar-exclusions/{event_id}`: Drops the exclusion link, re-enabling cultural context inclusion for subsequent cron cycles.
 - **Race Condition Guard:** State mutations on calendar exclusions during an active strategy run (`state = 'GENERATING'`) must be blocked at the HTTP gateway layer to prevent corrupted prompt interpolation states.
+
+## 12. Visual UI Module Toggles & Runbook Automation Control
+- **Dynamic Module Guard Invariant:**
+  - Before any automated worker processes a transaction hook or an event stream message for a given domain, the system must validate the specific client's runtime configuration:
+    ```sql
+    SELECT modules_enabled->>:domain_key AS is_enabled 
+    FROM clients 
+    WHERE id = :client_id;
+    ```
+  - If the extracted value returns `false` (string or boolean), the worker must halt execution immediately, drop the processing frame gracefully, and log the intervention under an observability code of `system.ui_toggle_suppressed`.
+  - **Exception Rule:** Critical operational runbook shortcuts (`POST /publish-jobs/{id}/confirm-manual`, manual proxy rotations, or hard column overrides) bypass the module checking layer to ensure the administrator always maintains override authority.
