@@ -59,3 +59,18 @@
 - **Operator Manual Resolutions:**
   - `POST /publish-jobs/{id}/confirm-manual`: Atomically transitions the target job state from `SCHEDULED` to `DONE` with an optimistic lock guard (`version = version + 1`), confirming the operator resolved the slot physically on Instagram.
   - `POST /publish-jobs/{id}/cancel`: Atomically forces the job state directly to the terminal `CANCELLED` status, safely liquidating the missed slot from the active pipeline.
+
+## 8. Operator Vacation, Leave Substitution, and Bulk Resolution
+- **Operator Resolution Cascade Algorithm:**
+  - Upon dispatching any Telegram validation block, the approval pipeline MUST compute the active router target:
+    1. Query the `client_operators` table for the client's `role = 'primary'`.
+    2. If the primary operator's status state is `'active'`, route to their `telegram_chat_id`.
+    3. If the status is `'on_leave'`, query `role = 'backup'` for that client. If active, route to them.
+    4. If backup is missing, inactive, or on leave, escalate the notification block to the Shared Master Group Chat ID.
+    5. Write the final computed identifier to `approval_requests.resolved_operator_id`.
+
+- **Bulk Decision Safety Constraints:**
+  - The `POST /approvals/bulk-decide` gateway endpoint must enforce strict throttling bounds to prevent destructive batch updates:
+    1. **Hard Allocation Cap:** Reject requests updating greater than 20 elements at once.
+    2. **Explicit Consent Invariant:** The body payload MUST hold a boolean key `confirm: true`. If absent or false, drop the transaction instantly.
+    3. **State Mutability:** Transitions must iterate through an optimistic lock verification before changing states to `'APPROVED'` or `'REJECTED'`.
