@@ -22,3 +22,17 @@
 ## 5. Token Mitigation & Decay Tuning
 - **Memory Context Slicing:** Cap vector contexts at a maximum of top-3 matching elements (Strict budget constraint <= 500 tokens).
 - **Temporal Decaying:** Vector search queries must include dynamic weighting based on `created_at` or filter out records holding uninitialized performance signals (`engagement_score == 0.0`).
+
+## 6. Client Lifecycle & Offboarding Operational Procedure
+- **Atomic Offboarding Transaction:** The `POST /clients/{id}/offboard` endpoint must run the entire termination vector within a single isolated database transaction block:
+  1. Set `clients.status = 'offboarded'` and log timestamps + reasons.
+  2. Batch-update all `publish_jobs` in `('QUEUED', 'SCHEDULED', 'ATTEMPTING')` states directly to `'CANCELLED'`.
+  3. Batch-update all `approval_requests` holding a state of `'PENDING'` directly to `'CANCELLED'`.
+  4. Invalidate credentials by forcing `instagram_sessions.session_valid = false`.
+  5. Commit transaction and emit the `client.offboarded` event payload to Redis Streams.
+
+- **Stale Event Interception (Orchestrator Guard):**
+  - Before any domain worker (Strategy, Content, Approvals, Publishing) triggers an LLM orchestration call or state transition, it MUST verify the client status state:
+    `SELECT status FROM clients WHERE id = :client_id;`
+  - If a client holds a status of `'offboarded'`, the orchestrator must instantly halt processing, emit an observability log under event type `system.stale_event`, and securely discard the message payload.
+- **Paused Mode Handling:** If a client holds a status of `'paused'`, the scheduling loops within the strategy and content domains must hold and suspend automatic asset dispatching without executing a destructive wipe of pending queues.

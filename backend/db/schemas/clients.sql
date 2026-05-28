@@ -5,6 +5,7 @@ CREATE TABLE clients (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     brand_voice TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'offboarded')), -- New: Lifecycle Guard
     approval_mode INTEGER NOT NULL DEFAULT 1 CHECK (approval_mode IN (1, 2, 3)),
     publish_mode INTEGER NOT NULL DEFAULT 1 CHECK (publish_mode IN (1, 2, 3)),
     client_calendar_approval BOOLEAN NOT NULL DEFAULT FALSE,
@@ -13,6 +14,8 @@ CREATE TABLE clients (
     timezone VARCHAR(100) NOT NULL DEFAULT 'Asia/Tehran',
     instagram_handle VARCHAR(255),
     telegram_chat_id VARCHAR(255),
+    offboarded_at TIMESTAMPTZ,                                      -- New: Audit timestamp
+    offboarded_reason TEXT,                                          -- New: Closure context
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -23,8 +26,8 @@ CREATE TABLE instagram_sessions (
     username VARCHAR(255) NOT NULL,
     encrypted_password TEXT NOT NULL,
     session_file TEXT,
-    proxy_url TEXT,                                                  -- Primary Proxy
-    proxy_url_backup TEXT,                                           -- Iran Connectivity Guard
+    proxy_url TEXT,
+    proxy_url_backup TEXT,
     last_login_at TIMESTAMPTZ,
     session_valid BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -36,7 +39,7 @@ CREATE TABLE daily_story_overrides (
     client_id UUID NOT NULL REFERENCES clients(id),
     date DATE NOT NULL,
     stories_count INTEGER NOT NULL CHECK (stories_count >= 0),
-    created_by VARCHAR(255) NOT NULL,                                -- Operator ID or System
+    created_by VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(client_id, date)
 );
@@ -53,3 +56,4 @@ CREATE TABLE shooting_requests (
 
 CREATE INDEX idx_shooting_requests_client_id ON shooting_requests(client_id);
 CREATE INDEX idx_daily_story_overrides_client_date ON daily_story_overrides(client_id, date);
+CREATE INDEX idx_clients_status ON clients(status);
