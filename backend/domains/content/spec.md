@@ -25,7 +25,7 @@ Generates story drafts for each content item in an approved calendar. Handles as
 ## API Endpoints
 GET    /content-items/{id}            — get content item detail
 GET    /campaigns/{id}/content-items  — list items for campaign
-POST   /content-items/{id}/assets     — upload asset
+POST   /content-items/{id}/assets     — upload asset (operator or client)
 DELETE /content-items/{id}/assets/{asset_id} — remove asset
 
 ## Agent: Content Agent
