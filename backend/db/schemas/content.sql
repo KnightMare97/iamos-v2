@@ -6,8 +6,10 @@ CREATE TABLE content_items (
     state VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     scheduled_at TIMESTAMPTZ,
     caption TEXT,
+    visual_direction TEXT,                                           -- New: Persisted from Agent Output
+    hashtags TEXT[],                                                 -- New: Persisted from Agent Output
     revision_count INTEGER NOT NULL DEFAULT 0,
-    version INTEGER NOT NULL DEFAULT 1,                             -- Concurrency Guard
+    version INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

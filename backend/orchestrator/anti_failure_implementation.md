@@ -74,3 +74,19 @@
     1. **Hard Allocation Cap:** Reject requests updating greater than 20 elements at once.
     2. **Explicit Consent Invariant:** The body payload MUST hold a boolean key `confirm: true`. If absent or false, drop the transaction instantly.
     3. **State Mutability:** Transitions must iterate through an optimistic lock verification before changing states to `'APPROVED'` or `'REJECTED'`.
+
+## 9. Content Preview Rendering Contract & Phased Telegram Implementation
+- **Contract Architecture (`GET /content-items/{id}/preview`):**
+  - This route must be a zero-LLM, pure server-side rendered (SSR) endpoint returning an isolated, self-contained HTML/CSS block.
+  - **Data Injection:** The endpoint queries `content_items` (`caption`, `hashtags`, `visual_direction`) and joins `clients` (`brand_color`, `brand_font`) to assemble a 9:16 aspect ratio absolute CSS mock frame resembling an Instagram Story canvas.
+
+- **Phased Implementation Execution Guide:**
+  - **Phase 1 (Current Active Mode):** - The Telegram approval dispatch worker skips rendering images. It aggregates the structured database records and sends a cleanly formatted markdown text payload to the operator:
+      ```text
+      📱 *NEW CONTENT ITEM PENDING APPROVAL*
+      ------------------------------------
+      📝 **Caption:** {caption}
+      🏷️ **Hashtags:** {hashtags}
+      🎨 **Visual Direction:** {visual_direction}
+      ```
+  - **Phase 2 (Future Enhancement):** - The approval workflow worker will trigger an automated headless render of the `/preview` URL, capture the layout buffer as a PNG image, and issue a `sendPhoto` call alongside the interactive approval inline buttons to the operator.

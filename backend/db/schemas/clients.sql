@@ -5,7 +5,9 @@ CREATE TABLE clients (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     brand_voice TEXT,
-    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'offboarded')), -- New: Lifecycle Guard
+    brand_color VARCHAR(7) NOT NULL DEFAULT '#ffffff',               -- New: Visual Identity Phase 2 Prep
+    brand_font VARCHAR(50) NOT NULL DEFAULT 'sans-serif',            -- New: Visual Identity Phase 2 Prep
+    status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'offboarded')),
     approval_mode INTEGER NOT NULL DEFAULT 1 CHECK (approval_mode IN (1, 2, 3)),
     publish_mode INTEGER NOT NULL DEFAULT 1 CHECK (publish_mode IN (1, 2, 3)),
     client_calendar_approval BOOLEAN NOT NULL DEFAULT FALSE,
@@ -14,8 +16,8 @@ CREATE TABLE clients (
     timezone VARCHAR(100) NOT NULL DEFAULT 'Asia/Tehran',
     instagram_handle VARCHAR(255),
     telegram_chat_id VARCHAR(255),
-    offboarded_at TIMESTAMPTZ,                                      -- New: Audit timestamp
-    offboarded_reason TEXT,                                          -- New: Closure context
+    offboarded_at TIMESTAMPTZ,
+    offboarded_reason TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
