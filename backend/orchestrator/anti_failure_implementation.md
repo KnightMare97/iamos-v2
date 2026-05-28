@@ -170,3 +170,27 @@
     - If `go_live_at` sits within a 24-hour window from the execution frame, the approval payload is prefixed with `🔴 URGENT`.
     - The `timeout_at` boundary constraint for validation requests linked to a `campaign_request_id` drops from the standard 24-hour system window directly down to **2 hours**. If unacted upon within 2 hours, it triggers immediate fallback alerts.
   - **Step 5 (Visual Safety Validation Guard):** The frontend workspace provides a manual mapping matrix for assets. Before any `campaign_override = TRUE` content item can pass state transition validation to `APPROVED`, the orchestrator asserts that a matching foreign key exists inside `campaign_request_assets.assigned_to_content_item_id`. Any unmapped slots throw a hard block constraint.
+
+## 14. Automated Image Generation Pipeline & Visual QA Constraints
+- **The 5-Step AI Generation Lifecycle Invariant:**
+  - **Step 1: Expanded Prompt Crafting:** If a content slot resolves to an asset source of `'ai_generated'`, the orchestrator invokes a Tier 3 `image_prompt_generation` task. It expands the brief into a structured metadata output: `prompt_string`, `negative_prompt`, `aspect_ratio: "9:16"`, and `style_descriptors`.
+  - **Step 2: Isolated API Execution:** The system dispatches the prompt payload to the client's preferred provider (DALL-E 3, Stable Diffusion, or Ideogram) and saves the returned binary URL instantly inside the `assets` matrix.
+  - **Step 3: Machine Vision QA Shielding:** The orchestrator halts the state flow and invokes a Tier 2 `image_qa_vision` call. The vision engine explicitly asserts four boolean flags: `matches_visual_direction`, `contains_no_text`, `is_appropriate`, and `looks_professional`. 
+    - **Circuit Breaker Check:** If any flag evaluates to `FALSE`, the transaction writes the error logs to `asset_quality_checks` and triggers an automated loop regeneration. This automated self-healing loop is capped at a strict maximum of **2 attempts**.
+  - **Step 4: Forced Human-in-the-Loop Interception:** The system is strictly prohibited from auto-publishing any record derived from an AI visual asset. It forces insertion into the `approval_requests` queue, forwarding the binary rendering along with the caption to the operator Telegram node.
+  - **Step 5: Iterative Feedback Expansion Loop:** If the human operator clicks `REJECT` and appends instructional prompt feedback, the orchestrator updates `asset_quality_checks`, concatenates the text string directly to the `prompt_string` boundary block, and fires the regeneration loop. If the operator rejection cycle hits **2 iterations**, the system triggers a hard failure exception, drops the AI flow, and issues an urgent `shooting` request notification.
+
+- **Phase 3 Video Generation Invariant:**
+  - Video asset types (`video_reel`, `video_boomerang`) and high-end video provider actions are architecture-ready but structurally locked. During data initialization, all video categories inside `client_content_type_config` must hold an explicit value of `enabled = FALSE` until separate engine activation work is committed.
+
+## 14. Automated Image Generation Pipeline & Visual QA Constraints
+- **The 5-Step AI Generation Lifecycle Invariant:**
+  - **Step 1: Expanded Prompt Crafting:** If a content slot resolves to an asset source of `'ai_generated'`, the orchestrator invokes a Tier 3 `image_prompt_generation` task. It expands the brief into a structured metadata output: `prompt_string`, `negative_prompt`, `aspect_ratio: "9:16"`, and `style_descriptors`.
+  - **Step 2: Isolated API Execution:** The system dispatches the prompt payload to the client's preferred provider (DALL-E 3, Stable Diffusion, or Ideogram) and saves the returned binary URL instantly inside the `assets` matrix.
+  - **Step 3: Machine Vision QA Shielding:** The orchestrator halts the state flow and invokes a Tier 2 `image_qa_vision` call. The vision engine explicitly asserts four boolean flags: `matches_visual_direction`, `contains_no_text`, `is_appropriate`, and `looks_professional`. 
+    - **Circuit Breaker Check:** If any flag evaluates to `FALSE`, the transaction writes the error logs to `asset_quality_checks` and triggers an automated loop regeneration. This automated self-healing loop is capped at a strict maximum of **2 attempts**.
+  - **Step 4: Forced Human-in-the-Loop Interception:** The system is strictly prohibited from auto-publishing any record derived from an AI visual asset. It forces insertion into the `approval_requests` queue, forwarding the binary rendering along with the caption to the operator Telegram node.
+  - **Step 5: Iterative Feedback Expansion Loop:** If the human operator clicks `REJECT` and appends instructional prompt feedback, the orchestrator updates `asset_quality_checks`, concatenates the text string directly to the `prompt_string` boundary block, and fires the regeneration loop. If the operator rejection cycle hits **2 iterations**, the system triggers a hard failure exception, drops the AI flow, and issues an urgent `shooting` request notification.
+
+- **Phase 3 Video Generation Invariant:**
+  - Video asset types (`video_reel`, `video_boomerang`) and high-end video provider actions are architecture-ready but structurally locked. During data initialization, all video categories inside `client_content_type_config` must hold an explicit value of `enabled = FALSE` until separate engine activation work is committed.
