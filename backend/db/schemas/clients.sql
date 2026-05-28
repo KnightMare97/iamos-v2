@@ -17,6 +17,19 @@ CREATE TABLE clients (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE instagram_sessions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    client_id UUID NOT NULL REFERENCES clients(id) UNIQUE,
+    username VARCHAR(255) NOT NULL,
+    encrypted_password TEXT NOT NULL, -- Must be encrypted at rest by backend runtime
+    session_file TEXT,                 -- Serialized instagrapi session to minimize re-logins
+    proxy_url TEXT,                    -- Dedicated proxy per account to avoid flag triggers
+    last_login_at TIMESTAMPTZ,
+    session_valid BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE shooting_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     client_id UUID NOT NULL REFERENCES clients(id),
