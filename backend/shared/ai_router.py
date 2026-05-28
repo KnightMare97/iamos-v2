@@ -25,7 +25,8 @@ TASK_TIER_MAP: Dict[str, int] = {
     "moderation_ambiguous": 2,
     "observability_digest": 2,
     "reporting_narrative": 2,
-    "prompt_review_analyzer": 2                                      -- New: Prompt Optimization Theme Analysis Task
+    "prompt_review_analyzer": 2,
+    "campaign_asset_vision": 2                                       -- New: Vision Description for Ingested Campaign Assets
 }
 
 PROVIDER_MODELS: Dict[str, Dict[str, str]] = {

@@ -155,3 +155,18 @@
     ```
   - If the extracted value returns `false` (string or boolean), the worker must halt execution immediately, drop the processing frame gracefully, and log the intervention under an observability code of `system.ui_toggle_suppressed`.
   - **Exception Rule:** Critical operational runbook shortcuts (`POST /publish-jobs/{id}/confirm-manual`, manual proxy rotations, or hard column overrides) bypass the module checking layer to ensure the administrator always maintains override authority.
+
+## 13. Advanced Strategy Editing (Flow A) & Urgent Campaign Injection (Flow B)
+- **Flow A: Micro-Targeted Calendar Save Restrictions:**
+  - When the administrator commits changes to a monthly grid via the workspace, the backend MUST NOT pass modifications back to an LLM loop for voice translation or alignment.
+  - The orchestrator isolates only the mutation keys (modified, inserted, or removed rows). Slots marked untouched remain locked in their current state database vector. Only newly inserted or structurally rewritten slots re-enter the `PENDING` queue loop.
+
+- **Flow B: Urgent Campaign Ingestion Pipeline Execution:**
+  - **Step 1 (Asset Vision Logging):** Incoming binary assets trigger a Tier 2 Vision pipeline execution under `task_type="campaign_asset_vision"`. The resulting structured text output is permanently written to `campaign_request_assets.ai_description`.
+  - **Step 2 (Priority Injection Boundary):** The system calculates required slots (`duration_days * clients.stories_per_day`) and inserts records directly into `content_items` setting `campaign_override = TRUE`. These rows immediately hijack and override regular thematic slots for those calendar coordinate hours.
+  - **Step 3 (Hard Fact Invariant Prompting):** Content generation workers mapping `campaign_override = TRUE` slots are prohibited from inferring marketing statistics. The values inside `campaign_requests.structured_data` (e.g., specific coupon text, numeric discount rates) are injected as absolute literals into the model parameter boundaries.
+  - **Step 4 (Expedited Timeout & Group Chat Escalation Routing):**
+    - Arrival of an `urgency = 'emergency'` campaign request bypasses standard message throttling and triggers an instant Telegram webhook dispatch to the assigned operator.
+    - If `go_live_at` sits within a 24-hour window from the execution frame, the approval payload is prefixed with `🔴 URGENT`.
+    - The `timeout_at` boundary constraint for validation requests linked to a `campaign_request_id` drops from the standard 24-hour system window directly down to **2 hours**. If unacted upon within 2 hours, it triggers immediate fallback alerts.
+  - **Step 5 (Visual Safety Validation Guard):** The frontend workspace provides a manual mapping matrix for assets. Before any `campaign_override = TRUE` content item can pass state transition validation to `APPROVED`, the orchestrator asserts that a matching foreign key exists inside `campaign_request_assets.assigned_to_content_item_id`. Any unmapped slots throw a hard block constraint.
