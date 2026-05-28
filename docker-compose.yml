@@ -1,23 +1,68 @@
-version: '3.8'
+version: "3.9"
 
 services:
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - ./backend:/app
-    depends_on:
-      - redis
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/schemas:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      INSTAGRAM_PROXY_URL: ${INSTAGRAM_PROXY_URL}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
     volumes:
-      - redis_data:/data
+      - ./backend:/app
+      - assets_data:/app/assets
+
+  orchestrator:
+    build: ./backend
+    command: python -m orchestrator.engine
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  telegram_bot:
+    build: ./backend
+    command: python -m domains.approvals.telegram_bot
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
 
 volumes:
-  redis_data:
+  postgres_data:
+  assets_data:
