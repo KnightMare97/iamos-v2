@@ -3,9 +3,9 @@ import json
 import logging
 import asyncio
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Callable
+from typing import AsyncGenerator, Any
 
-from fastapi import FastAPI, HTTPException, Response, Depends, Request
+from fastapi import FastAPI, HTTPException, Response, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import asyncpg
 from redis.asyncio import Redis
@@ -45,7 +45,6 @@ async def orchestrator_event_loop(redis: Redis):
     
     try:
         while True:
-            # Block and wait for new events
             messages = await redis.xreadgroup(
                 group_name,
                 consumer_name,
@@ -62,9 +61,6 @@ async def orchestrator_event_loop(redis: Redis):
                     logger.info(f"Orchestrator received {event_type} for {aggregate_id} (ID: {message_id})")
                     
                     try:
-                        # Engine transition dispatch would be invoked here
-                        # engine.dispatch_event(payload)
-                        
                         # Atomic Log Acknowledgment
                         await redis.xack(stream_key, group_name, message_id)
                     except Exception as e:
@@ -152,7 +148,7 @@ async def get_redis() -> Redis:
         raise HTTPException(status_code=500, detail="Redis client not initialized")
     return redis_client
 
-# --- Core Infrastructure Routes ---
+# --- Infrastructure & Health Routes ---
 @app.get("/health", tags=["Infrastructure"])
 async def health_check(db: asyncpg.Connection = Depends(get_db)):
     """Liveness & Readiness probe verifying Postgres and Redis health."""
@@ -184,7 +180,6 @@ async def generate_content_preview(item_id: str, db: asyncpg.Connection = Depend
         WHERE c.id = $1
         LIMIT 1
     """
-    
     try:
         record = await db.fetchrow(query, item_id)
         if not record:
@@ -195,7 +190,6 @@ async def generate_content_preview(item_id: str, db: asyncpg.Connection = Depend
         brand_font = record['brand_font'] or "sans-serif"
         brand_color = record['brand_color'] or "#ffffff"
         
-        # Strictly structured RTL template for Iranian visual compliance
         html_content = f"""
         <!DOCTYPE html>
         <html lang="fa" dir="rtl">
@@ -258,22 +252,7 @@ async def generate_content_preview(item_id: str, db: asyncpg.Connection = Depend
         logger.error(f"Fatal error generating canvas preview: {e}")
         raise HTTPException(status_code=500, detail="Assembly layer rendering failure")
 
-# --- Event Bus Publisher Utility ---
-async def publish_event(redis: Redis, event_type: str, aggregate_id: str, aggregate_type: str, client_id: str, payload: dict, triggered_by: str):
-    """
-    Appends an immutable event to the Redis Stream event bus.
-    Ensures architectural invariants (Event log is append-only).
-    """
-    event_payload = {
-        "event_type": event_type,
-        "aggregate_id": aggregate_id,
-        "aggregate_type": aggregate_type,
-        "client_id": client_id,
-        "payload": json.dumps(payload),
-        "triggered_by": triggered_by
-    }
-    await redis.xadd("iamos:events", event_payload)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+# --- Deferred Routing Mount to Prevent Circular Imports ---
+# این بخش مسیرهای اندپوینت‌هایی که جدیداً ساختی را به صورت امن به بدنه اصلی متصل می‌کند
+from backend.api.endpoints import router as api_router
+app.include_router(api_router, prefix="/api/v1")
